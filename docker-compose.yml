@@ -1,0 +1,47 @@
+version: "3.2"
+
+services:
+  web:
+    container_name: "tweet_web"
+    build:
+      context: app/frontend
+      dockerfile: Dockerfile
+    depends_on:
+      - app
+    ports:
+      - "1111:80"
+    volumes:
+      - ./images/:/usr/share/nginx/html/app/static/images
+    networks:
+      - custom
+
+  app:
+    container_name: "tweet_app"
+    build:
+      context: app
+    stop_signal: SIGKILL
+    depends_on:
+      - postgres
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./images/:/app/static/images
+    networks:
+      - custom
+
+  postgres:
+    image: postgres:13-alpine
+    container_name: "tweet_db"
+    environment:
+      POSTGRES_USER: "admin"
+      POSTGRES_PASSWORD: "admin"
+    volumes:
+      - ./db/:/var/lib/postgresql/data
+    expose:
+      - 5432
+    networks:
+      - custom
+
+networks:
+  custom:
+    driver: bridge
