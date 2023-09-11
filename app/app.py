@@ -11,7 +11,7 @@ from sqlalchemy.orm.exc import UnmappedInstanceError
 from functions import *
 from schemas import *
 from database import *
-from models import Users, FollowersAndFollowings, Tweets, Likes, Medias
+from models import User, FollowersAndFollowing, Tweet, Like, Media
 
 logger = logging.getLogger(__name__)
 logging.basicConfig()
@@ -27,56 +27,11 @@ def pong():
     return {"ping": "pong!"}
 
 
-@app.on_event("startup")
-async def startup():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
-    logger.info("Checking the availability of data in tables.")
-    users_exist = await check_data_in_db(Users)
-    medias_exist = await check_data_in_db(Medias)
-    tweets_exist = await check_data_in_db(Tweets)
-    print(users_exist, medias_exist, tweets_exist)
-
-    if not users_exist:
-        for user in fake_db_users:
-            async with session.begin():
-                new_user = Users(name=user["name"], user_api_key=user["user_api_key"])
-                session.add(new_user)
-                await session.commit()
-
-    if not medias_exist:
-        for media in fake_db_medias:
-            async with session.begin():
-                new_media = Medias(filename=media["filename"])
-                session.add(new_media)
-                await session.commit()
-
-    if not tweets_exist:
-        for tweet in fake_db_tweets:
-            async with session.begin():
-                new_tweet = Tweets(
-                    content=tweet["content"],
-                    attachments=tweet["attachments"],
-                    author=tweet["author"])
-                session.add(new_tweet)
-                await session.commit()
-
-
-@app.on_event("shutdown")
-async def shutdown():
-    await session.close()
-    await engine.dispose()
-    if testing:
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.drop_all)
-
-
 @app.post("/api/users", response_model=UsersBase)
 async def add_user(user: UsersCreate, api_key: str = Header(None)):
     """The function adds a new user to the database."""
     await check_api_key(api_key)
-    new_user = Users(**user.model_dump())
+    new_user = User(**user.model_dump())
     try:
         async with session.begin():
             session.add(new_user)
@@ -92,7 +47,7 @@ async def get_all_users(api_key: str = Header(None)) -> List[UsersBase]:
     """The function shows all users in the database."""
     await check_api_key(api_key)
     async with session.begin():
-        query = select(Users.id, Users.name, Users.user_api_key)
+        query = select(User.id, User.name, User.user_api_key)
         users = await session.execute(query)
         return users.all()
 
@@ -143,7 +98,7 @@ async def add_new_follower(id: int, api_key: str = Header(None)):
             return {"result": exec_result}
 
         try:
-            new_follower = FollowersAndFollowings(follower_id=follower_id, following_id=following_id)
+            new_follower = FollowersAndFollowing(follower_id=follower_id, following_id=following_id)
             async with session.begin():
                 session.add(new_follower)
                 await session.commit()
@@ -169,9 +124,9 @@ async def delete_follower(id: int, api_key: str = Header(None)):
         try:
             async with session.begin():
                 data = select(
-                    FollowersAndFollowings).\
-                    where(FollowersAndFollowings.follower_id == int(follower_id) and
-                          FollowersAndFollowings.following_id == following_id)
+                    FollowersAndFollowing). \
+                    where(FollowersAndFollowing.follower_id == int(follower_id) and
+                          FollowersAndFollowing.following_id == following_id)
                 entry = await session.execute(data)
                 entry = entry.scalar()
                 await session.delete(entry)
@@ -199,14 +154,14 @@ async def add_new_tweet(new_tweet: AddTweet, api_key: str = Header(None)):
         "attachments": new_tweet.tweet_media_ids,
         "author": author,
     }
-    tweet = Tweets(**data)
+    tweet = Tweet(**data)
 
     async with session.begin():
         session.add(tweet)
         await session.commit()
 
     async with session.begin():
-        query = select(Tweets).order_by(desc(Tweets.id))
+        query = select(Tweet).order_by(desc(Tweet.id))
         result = await session.execute(query)
         last_tweet = result.scalars().first()
 
@@ -230,9 +185,9 @@ async def delete_tweet(id: int, api_key: str = Header(None)):
     if tweet_id and author:
         try:
             async with session.begin():
-                data = select(Tweets).where(
-                    Tweets.author == author and
-                    Tweets.id == int(tweet_id)
+                data = select(Tweet).where(
+                    Tweet.author == author and
+                    Tweet.id == int(tweet_id)
                 )
                 entry = await session.execute(data)
                 entry = entry.scalar()
@@ -258,8 +213,7 @@ async def add_new_like(id: int, api_key: str = Header(None)):
     user_id = await get_user_id(api_key)
     tweet_id = await get_tweet_by_id(id)
     if user_id and tweet_id:
-
-        new_like = Likes(user_id=user_id, tweet_id=tweet_id)
+        new_like = Like(user_id=user_id, tweet_id=tweet_id)
         async with session.begin():
             session.add(new_like)
             await session.commit()
@@ -282,8 +236,8 @@ async def delete_like(id: int, api_key: str = Header(None)):
 
         async with session.begin():
             try:
-                data = select(Likes).where(
-                    Likes.user_id == user_id and Likes.tweet_id == int(tweet_id)
+                data = select(Like).where(
+                    Like.user_id == user_id and Like.tweet_id == int(tweet_id)
                 )
                 query = await session.execute(data)
                 result = query.scalar()
@@ -309,22 +263,21 @@ async def get_all_tweets(api_key: str = Header(None)):
 
     tweets_list = []
     async with session.begin():
-        query = select(Tweets.id, Tweets.content, Tweets.attachments, Tweets.author)
+        query = select(Tweet.id, Tweet.content, Tweet.attachments, Tweet.author)
         res = await session.execute(query)
         tweets = res.all()
 
         if tweets:
             tweets_list = []
             for tweet_id, tweet_content, tweet_attachments, tweet_author in tweets:
-
                 attachments = await check_tweet_attachments(tweet_attachments)
-                likes_query = select(Likes.user_id, Users.name).\
-                    join(Users, Likes.user_id == Users.id).\
-                    filter(Likes.tweet_id == int(tweet_id))
+                likes_query = select(Like.user_id, User.name). \
+                    join(User, Like.user_id == User.id). \
+                    filter(Like.tweet_id == int(tweet_id))
                 likes = await session.execute(likes_query)
                 likes = likes.all()
                 likes_list = [{"user_id": like[0], "name": like[1]} for like in likes]
-                author_query = select(Users.id, Users.name).filter(Users.id == int(tweet_author))
+                author_query = select(User.id, User.name).filter(User.id == int(tweet_author))
                 author = await session.execute(author_query)
                 author = author.one()
                 author = {"id": author[0], "name": author[1]}
@@ -358,7 +311,7 @@ async def create_upload_files(file: UploadFile, api_key: str = Header(None)):
             content = await file.read()
             await out_file.write(content)
 
-        new_file = Medias(filename=file_path)
+        new_file = Media(filename=file_path)
         async with session.begin():
             session.add(new_file)
             await session.commit()
@@ -366,7 +319,7 @@ async def create_upload_files(file: UploadFile, api_key: str = Header(None)):
             logger.info(f"The file {filename} added to the database.")
 
         async with session.begin():
-            query = select(Medias.id).order_by(desc(Medias.id))
+            query = select(Media.id).order_by(desc(Media.id))
             result = await session.execute(query)
             last_file = result.scalars().first()
 

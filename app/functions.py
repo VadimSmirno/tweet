@@ -5,9 +5,8 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.future import select
 from fastapi import HTTPException, Header
 
-from models import Users, Tweets, Medias, FollowersAndFollowings
+from models import User, Tweet, Media, FollowersAndFollowing
 from database import session
-
 
 logger = logging.getLogger(__name__)
 logging.basicConfig()
@@ -17,18 +16,11 @@ UPLOAD_FOLDER = os.path.abspath("static/images")
 ALLOWED_EXTENSIONS = ["jpeg", "jpg", "png", "webp"]
 
 
-async def check_data_in_db(database):
-    async with session.begin():
-        data = select(database)
-        res = await session.execute(data)
-        return res.all()
-
-
 async def check_api_key(api_key: str = Header(None)):
     api_keys_list = []
     users_id_list = []
     async with session.begin():
-        users_data = (select(Users.id, Users.user_api_key))
+        users_data = (select(User.id, User.user_api_key))
         res = await session.execute(users_data)
         users = res.all()
         for user in users:
@@ -40,7 +32,7 @@ async def check_api_key(api_key: str = Header(None)):
 
 async def get_user_id(api_key: str):
     async with session.begin():
-        users_data = (select(Users.id).where(Users.user_api_key == api_key))
+        users_data = (select(User.id).where(User.user_api_key == api_key))
         res = await session.execute(users_data)
         users_id = res.one_or_none()
         if users_id:
@@ -49,7 +41,7 @@ async def get_user_id(api_key: str):
 
 async def get_user_by_id(user_id: int):
     async with session.begin():
-        users_data = select(Users.id).where(Users.id == user_id)
+        users_data = select(User.id).where(User.id == user_id)
         res = await session.execute(users_data)
         users_id = res.one_or_none()
         return users_id[0]
@@ -57,7 +49,7 @@ async def get_user_by_id(user_id: int):
 
 async def get_tweet_by_id(tweet_id: int):
     async with session.begin():
-        users_data = select(Tweets.id).where(Tweets.id == tweet_id)
+        users_data = select(Tweet.id).where(Tweet.id == tweet_id)
         res = await session.execute(users_data)
         tweet_id = res.one_or_none()
         if tweet_id:
@@ -73,7 +65,7 @@ async def check_file_extension(user_id: int, filename: str):
 
 
 async def check_tweet_attachments(attachments: list[int]):
-    query = select(Medias.id, Medias.filename)
+    query = select(Media.id, Media.filename)
     res = await session.execute(query)
     medias = res.all()
     result_media_ids = [media[1] for media in medias if media[0] in attachments]
@@ -85,15 +77,15 @@ async def get_user_data(user_id: int):
 
     try:
         async with session.begin():
-            query = select(Users.id, Users.name).where(Users.id == user_id)
+            query = select(User.id, User.name).where(User.id == user_id)
             users = await session.execute(query)
             user = users.one_or_none()
 
         if user:
             async with session.begin():
-                query = select(FollowersAndFollowings.follower_id, Users.name).\
-                    join(Users, FollowersAndFollowings.follower_id == Users.id).\
-                    filter(FollowersAndFollowings.following_id == user_id)
+                query = select(FollowersAndFollowing.follower_id, User.name). \
+                    join(User, FollowersAndFollowing.follower_id == User.id). \
+                    filter(FollowersAndFollowing.following_id == user_id)
                 followers_list = []
                 res = await session.execute(query)
                 followers = res.all()
@@ -106,9 +98,9 @@ async def get_user_data(user_id: int):
                     )
 
             async with session.begin():
-                query = select(FollowersAndFollowings.following_id, Users.name).\
-                    join(Users, FollowersAndFollowings.following_id == Users.id).\
-                    filter(FollowersAndFollowings.follower_id == user_id)
+                query = select(FollowersAndFollowing.following_id, User.name). \
+                    join(User, FollowersAndFollowing.following_id == User.id). \
+                    filter(FollowersAndFollowing.follower_id == user_id)
                 followings_list = []
                 res = await session.execute(query)
                 followings = res.all()
