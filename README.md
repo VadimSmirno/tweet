@@ -5,7 +5,7 @@
 ## Структура проекта
 
 Проект имеет следующую структуру:
-
+````
 ├── alembic/
 │   ├── versions/
 │   ├── env.py
@@ -25,7 +25,7 @@
 ├── config.py
 ├── docker-compose.yml
 ├── README.md
-
+````
 
 ## Использование Docker и Docker Compose
 
@@ -39,27 +39,27 @@
 POSTGRES_DB=your_database_name
 POSTGRES_USER=your_database_user
 POSTGRES_PASSWORD=your_database_password
+```
 
 
 ## Запустите приложение и базу данных с помощью Docker Compose:
 
-docker-compose up -d --build
-После запуска, приложение будет доступно по адресу http://localhost:1111. Документация API будет доступна по адресу http://localhost:8000/docs.
+1. Запуск приложения. ```docker-compose up -d --build```
 
-Для остановки приложения и базы данных выполните:
+- После запуска, приложение будет доступно по адресу http://localhost:1111.
+- Документация API будет доступна по адресу http://localhost:8000/docs.
 
-docker-compose down
+2. Для остановки приложения и базы данных выполните:
+ ```docker-compose down```
 
 ## Миграции базы данных
 
-* Для управления миграциями базы данных используется Alembic. Вы можете создавать и применять миграции с помощью следующих команд:
-    alembic revision -m "Название миграции"
-* Применить миграции:
-    alembic upgrade head
-* Откатить миграции:
-    alembic downgrade -1  # Откатить последнюю миграцию
+* Для управления миграциями базы данных используется Alembic.<br>
+Вы можете создавать и применять миграции с помощью следующих команд:<br>
+    ```alembic revision -m "Название миграции"```
+* Применить миграции: ```alembic upgrade head```
+* Откатить миграции: ```alembic downgrade -1```  
 
  ## Зависимости Python
-Зависимости Python указаны в файле requirements.txt. Вы можете установить их с помощью pip:   
-pip install -r requirements.txt
-
+Зависимости Python указаны в файле ```requirements.txt.```<br>
+Вы можете установить их с помощью pip: ```pip install -r requirements.txt```
