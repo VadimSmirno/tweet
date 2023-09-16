@@ -10,7 +10,7 @@ from database import session
 
 logger = logging.getLogger(__name__)
 logging.basicConfig()
-logger.setLevel('DEBUG')
+logger.setLevel("DEBUG")
 
 UPLOAD_FOLDER = os.path.abspath("static/images")
 ALLOWED_EXTENSIONS = ["jpeg", "jpg", "png", "webp"]
@@ -20,7 +20,7 @@ async def check_api_key(api_key: str = Header(None)):
     api_keys_list = []
     users_id_list = []
     async with session.begin():
-        users_data = (select(User.id, User.user_api_key))
+        users_data = select(User.id, User.user_api_key)
         res = await session.execute(users_data)
         users = res.all()
         for user in users:
@@ -32,7 +32,7 @@ async def check_api_key(api_key: str = Header(None)):
 
 async def get_user_id(api_key: str):
     async with session.begin():
-        users_data = (select(User.id).where(User.user_api_key == api_key))
+        users_data = select(User.id).where(User.user_api_key == api_key)
         res = await session.execute(users_data)
         users_id = res.one_or_none()
         if users_id:
@@ -83,9 +83,11 @@ async def get_user_data(user_id: int):
 
         if user:
             async with session.begin():
-                query = select(FollowersAndFollowing.follower_id, User.name). \
-                    join(User, FollowersAndFollowing.follower_id == User.id). \
-                    filter(FollowersAndFollowing.following_id == user_id)
+                query = (
+                    select(FollowersAndFollowing.follower_id, User.name)
+                    .join(User, FollowersAndFollowing.follower_id == User.id)
+                    .filter(FollowersAndFollowing.following_id == user_id)
+                )
                 followers_list = []
                 res = await session.execute(query)
                 followers = res.all()
@@ -98,9 +100,11 @@ async def get_user_data(user_id: int):
                     )
 
             async with session.begin():
-                query = select(FollowersAndFollowing.following_id, User.name). \
-                    join(User, FollowersAndFollowing.following_id == User.id). \
-                    filter(FollowersAndFollowing.follower_id == user_id)
+                query = (
+                    select(FollowersAndFollowing.following_id, User.name)
+                    .join(User, FollowersAndFollowing.following_id == User.id)
+                    .filter(FollowersAndFollowing.follower_id == user_id)
+                )
                 followings_list = []
                 res = await session.execute(query)
                 followings = res.all()

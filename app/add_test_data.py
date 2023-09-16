@@ -6,7 +6,7 @@ from database import session
 
 def random_string(length=10):
     letters = string.ascii_letters
-    return ''.join(random.choice(letters) for _ in range(length))
+    return "".join(random.choice(letters) for _ in range(length))
 
 
 def create_users(num_users=10):
@@ -67,7 +67,7 @@ def create_medias(num_medias=10):
     session.commit()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     create_users()
     create_followers_and_followings()
     create_tweets()
