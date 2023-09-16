@@ -32,9 +32,8 @@ services:
   postgres:
     image: postgres:13-alpine
     container_name: "tweet_db"
-    environment:
-      POSTGRES_USER: "admin"
-      POSTGRES_PASSWORD: "admin"
+    env_file:
+      - .env
     volumes:
       - ./db/:/var/lib/postgresql/data
     expose:

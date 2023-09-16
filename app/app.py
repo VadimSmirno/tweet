@@ -15,7 +15,7 @@ from models import User, FollowersAndFollowing, Tweet, Like, Media
 
 logger = logging.getLogger(__name__)
 logging.basicConfig()
-logger.setLevel('DEBUG')
+logger.setLevel("DEBUG")
 
 app = FastAPI()
 
@@ -37,7 +37,7 @@ async def add_user(user: UsersCreate, api_key: str = Header(None)):
             session.add(new_user)
             await session.commit()
     except IntegrityError:
-        logger.error(f'This user already exist.')
+        logger.error(f"This user already exist.")
 
     return new_user
 
@@ -92,20 +92,27 @@ async def add_new_follower(id: int, api_key: str = Header(None)):
     follower_id = await get_user_id(api_key)
     following_id = await get_user_by_id(id)
     if follower_id and following_id:
-
         if follower_id == following_id:
-            logger.info(f"The user id: {following_id} is trying to subscribe to himself.")
+            logger.info(
+                f"The user id: {following_id} is trying to subscribe to himself."
+            )
             return {"result": exec_result}
 
         try:
-            new_follower = FollowersAndFollowing(follower_id=follower_id, following_id=following_id)
+            new_follower = FollowersAndFollowing(
+                follower_id=follower_id, following_id=following_id
+            )
             async with session.begin():
                 session.add(new_follower)
                 await session.commit()
                 exec_result = True
-                logger.info(f"The user id: {following_id} subscribed to user id: {follower_id}")
+                logger.info(
+                    f"The user id: {following_id} subscribed to user id: {follower_id}"
+                )
         except IntegrityError:
-            logger.error(f"The user id: {following_id} is already subscribed to user id: {follower_id}")
+            logger.error(
+                f"The user id: {following_id} is already subscribed to user id: {follower_id}"
+            )
 
         finally:
             return {"result": exec_result}
@@ -123,18 +130,22 @@ async def delete_follower(id: int, api_key: str = Header(None)):
     if follower_id and following_id:
         try:
             async with session.begin():
-                data = select(
-                    FollowersAndFollowing). \
-                    where(FollowersAndFollowing.follower_id == int(follower_id) and
-                          FollowersAndFollowing.following_id == following_id)
+                data = select(FollowersAndFollowing).where(
+                    FollowersAndFollowing.follower_id == int(follower_id)
+                    and FollowersAndFollowing.following_id == following_id
+                )
                 entry = await session.execute(data)
                 entry = entry.scalar()
                 await session.delete(entry)
                 await session.commit()
                 exec_result = True
-                logger.info(f"The user id: {following_id} unsubscribed to user id: {follower_id}")
+                logger.info(
+                    f"The user id: {following_id} unsubscribed to user id: {follower_id}"
+                )
         except UnmappedInstanceError:
-            logger.error(f"The user id: {following_id} is not subscribed to user id: {follower_id}")
+            logger.error(
+                f"The user id: {following_id} is not subscribed to user id: {follower_id}"
+            )
 
         finally:
             return {"result": exec_result}
@@ -186,8 +197,7 @@ async def delete_tweet(id: int, api_key: str = Header(None)):
         try:
             async with session.begin():
                 data = select(Tweet).where(
-                    Tweet.author == author and
-                    Tweet.id == int(tweet_id)
+                    Tweet.author == author and Tweet.id == int(tweet_id)
                 )
                 entry = await session.execute(data)
                 entry = entry.scalar()
@@ -233,7 +243,6 @@ async def delete_like(id: int, api_key: str = Header(None)):
     user_id = await get_user_id(api_key)
     tweet_id = await get_tweet_by_id(id)
     if user_id and tweet_id:
-
         async with session.begin():
             try:
                 data = select(Like).where(
@@ -244,9 +253,13 @@ async def delete_like(id: int, api_key: str = Header(None)):
                 await session.delete(result)
                 await session.commit()
                 exec_result = True
-                logger.info(f"The user id: {user_id} deleted a like from tweet id: {tweet_id}")
+                logger.info(
+                    f"The user id: {user_id} deleted a like from tweet id: {tweet_id}"
+                )
             except UnmappedInstanceError:
-                logger.error(f"The tweet id: {tweet_id} doesn't have a like from user id: {user_id}")
+                logger.error(
+                    f"The tweet id: {tweet_id} doesn't have a like from user id: {user_id}"
+                )
 
             finally:
                 return {"result": exec_result}
@@ -271,13 +284,17 @@ async def get_all_tweets(api_key: str = Header(None)):
             tweets_list = []
             for tweet_id, tweet_content, tweet_attachments, tweet_author in tweets:
                 attachments = await check_tweet_attachments(tweet_attachments)
-                likes_query = select(Like.user_id, User.name). \
-                    join(User, Like.user_id == User.id). \
-                    filter(Like.tweet_id == int(tweet_id))
+                likes_query = (
+                    select(Like.user_id, User.name)
+                    .join(User, Like.user_id == User.id)
+                    .filter(Like.tweet_id == int(tweet_id))
+                )
                 likes = await session.execute(likes_query)
                 likes = likes.all()
                 likes_list = [{"user_id": like[0], "name": like[1]} for like in likes]
-                author_query = select(User.id, User.name).filter(User.id == int(tweet_author))
+                author_query = select(User.id, User.name).filter(
+                    User.id == int(tweet_author)
+                )
                 author = await session.execute(author_query)
                 author = author.one()
                 author = {"id": author[0], "name": author[1]}
@@ -307,7 +324,7 @@ async def create_upload_files(file: UploadFile, api_key: str = Header(None)):
         file_path = os.path.join(UPLOAD_FOLDER, filename)
         print(UPLOAD_FOLDER)
         print(file_path)
-        async with aiofiles.open(file_path, 'wb') as out_file:
+        async with aiofiles.open(file_path, "wb") as out_file:
             content = await file.read()
             await out_file.write(content)
 
